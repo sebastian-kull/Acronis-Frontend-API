@@ -30,6 +30,10 @@ class Home extends BaseController
         $this->access_token = $object->access_token;
     }
 
+    /**
+     * main function
+     * @return void
+     */
     public function index()
     {
 //        $tenantName = $this->"testName";
@@ -66,6 +70,50 @@ class Home extends BaseController
         $this->checkCurrentRoles($userId);
     }
 
+    /**
+     * creating an acronis tenant on backup.ch portal
+     * @param $name
+     * @return void
+     */
+    public function creatingATenant($name)
+    {
+        $tenant = array(
+            "name" => $name,
+            "kind" => "customer",
+            "parent_id" => $this->parent_id,
+        );
+
+        $response = $this->client->request("POST", "tenants", ["json" => $tenant]);
+        print_r("create tenant: " . $response->getStatusCode() . "<br>");
+    }
+
+    /**
+     * get tenant id by name
+     * @param string $name
+     * @return string
+     */
+    public function getTenantId(string $name): string
+    {
+        $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
+        $response = $this->client->request("GET", "tenants", ["query" => ["subtree_root_id" => $this->parent_id]]);
+        $object = json_decode($response->getBody());
+        $id = null;
+        foreach ($object->items as $o) {
+            if ($o->name == $name) {
+                $id = $o->id;
+                print_r("tenant ID: " . $id . "<br>");
+                break;
+            }
+        }
+        return $id;
+    }
+
+    /**
+     * creating an acronis user account on backup.ch portal
+     * @param string $tenant_id
+     * @param string $username
+     * @return void
+     */
     public function creatingUserAccount(string $tenant_id, string $username)
     {
 //        check if name available
@@ -90,6 +138,11 @@ class Home extends BaseController
         }
     }
 
+    /**
+     * activate user Account via mail. Sends an activation mail to the user.
+     * @param string $userId
+     * @return void
+     */
     public function activateUserAccount(string $userId)
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
@@ -97,6 +150,49 @@ class Home extends BaseController
         print_r("Activate User via Mail: " . $response->getStatusCode() . "<br>");
     }
 
+    /**
+     * get user id by name
+     * @param string $name
+     * @param string $tenant_id
+     * @return string
+     */
+    public function getUserId(string $name, string $tenant_id): string
+    {
+        $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
+        $response = $this->client->request("GET", "users", ["query" => ["subtree_root_tenant_id" => $tenant_id]]);
+        $object = json_decode($response->getBody());
+        $id = "";
+        foreach ($object->items as $o) {
+            if ($o->login == $name) {
+                $id = $o->id;
+                print_r("user ID: " . $id . "<br>");
+                break;
+            }
+        }
+        return $id;
+    }
+
+    /**
+     * enable or disable an application for a tenant
+     * @param string $method
+     * @param string $application_id
+     * @param string $tenant_id
+     * @return void
+     */
+    public function enableApplication(string $method, string $application_id, string $tenant_id)
+    {
+        $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
+        $response = $this->client->request($method, "applications/" . $application_id . "/bindings/tenants/" . $tenant_id);
+        print_r($response->getBody());
+        print_r("enable/disable application: " . $response->getStatusCode() . "<br>");
+    }
+
+    /**
+     * activate an application for a tenant
+     * @param $tenant_id
+     * @param $quotas
+     * @return void
+     */
     public function activateApplication($tenant_id, $quotas)
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
@@ -120,11 +216,16 @@ class Home extends BaseController
         print_r("activate quotas: " . $result->getStatusCode() . "<br>");
     }
 
+    /**
+     * set quota of application
+     * @param $tenant_id
+     * @param $quotas
+     * @return void
+     */
     public function setQuotas($tenant_id, $quotas)
     {
 
 
-        
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
         $result = $this->client->request("GET", "tenants/" . $tenant_id . "/offering_items", ["query" => ["edition" => "pck_per_workload"]]);
         $object = json_decode($result->getBody());
@@ -150,46 +251,11 @@ class Home extends BaseController
         print_r("set quotas: " . $result->getStatusCode() . "<br>");
     }
 
-    public function getTenantId(string $name): string
-    {
-        $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
-        $response = $this->client->request("GET", "tenants", ["query" => ["subtree_root_id" => $this->parent_id]]);
-        $object = json_decode($response->getBody());
-        $id = null;
-        foreach ($object->items as $o) {
-            if ($o->name == $name) {
-                $id = $o->id;
-                print_r("tenant ID: " . $id . "<br>");
-                break;
-            }
-        }
-        return $id;
-    }
-
-    public function getUserId(string $name, string $tenant_id): string
-    {
-        $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
-        $response = $this->client->request("GET", "users", ["query" => ["subtree_root_tenant_id" => $tenant_id]]);
-        $object = json_decode($response->getBody());
-        $id = "";
-        foreach ($object->items as $o) {
-            if ($o->login == $name) {
-                $id = $o->id;
-                print_r("user ID: " . $id . "<br>");
-                break;
-            }
-        }
-        return $id;
-    }
-
-    public function enableApplication(string $method, string $application_id, string $tenant_id)
-    {
-        $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
-        $response = $this->client->request($method, "applications/" . $application_id . "/bindings/tenants/" . $tenant_id);
-        print_r($response->getBody());
-        print_r("enable/disable application: " . $response->getStatusCode() . "<br>");
-    }
-
+    /**
+     * get id of an application by name
+     * @param string $name
+     * @return string
+     */
     public function getApplicationId(string $name): string
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
@@ -206,29 +272,11 @@ class Home extends BaseController
         return $id;
     }
 
-    public function creatingATenant($name)
-    {
-        $tenant = array(
-            "name" => $name,
-            "kind" => "customer",
-            "parent_id" => $this->parent_id,
-        );
-
-        $response = $this->client->request("POST", "tenants", ["json" => $tenant]);
-        print_r("create tenant: " . $response->getStatusCode() . "<br>");
-    }
-
-    public function generateRandomString($length = 10): string
-    {
-        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $charactersLength = strlen($characters);
-        $randomString = '';
-        for ($i = 0; $i < $length; $i++) {
-            $randomString .= $characters[rand(0, $charactersLength - 1)];
-        }
-        return $randomString;
-    }
-
+    /**
+     * get current roles of a user
+     * @param $user_id
+     * @return void
+     */
     public function checkCurrentRoles($user_id)
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
@@ -240,6 +288,12 @@ class Home extends BaseController
         }
     }
 
+    /**
+     * modify roles of a user
+     * @param $tenant_id
+     * @param $user_id
+     * @return void
+     */
     public function modifyCurrentRoles($tenant_id, $user_id)
     {
         $policies_object = [
@@ -259,4 +313,21 @@ class Home extends BaseController
         $response = $this->client->request("PUT", "users/" . $user_id . "/access_policies", ["json" => $policies_object]);
         print_r("modify role: " . $response->getStatusCode() . "<br>");
     }
+
+    /**
+     * creating a unique test name
+     * @param int $length
+     * @return string
+     */
+    public function generateRandomString(int $length = 10): string
+    {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $charactersLength = strlen($characters);
+        $randomString = '';
+        for ($i = 0; $i < $length; $i++) {
+            $randomString .= $characters[rand(0, $charactersLength - 1)];
+        }
+        return $randomString;
+    }
+
 }
