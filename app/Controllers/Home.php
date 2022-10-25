@@ -5,6 +5,44 @@ namespace App\Controllers;
 use CodeIgniter\HTTP\CURLRequest;
 use Config\Services;
 
+enum App
+{
+    case CyberProtection;
+
+    public function get(): string
+    {
+        return match ($this) {
+            App::CyberProtection => 'Cyber Protection',
+        };
+    }
+}
+enum Method
+{
+    case POST;
+    case DELETE;
+
+    public function get(): string
+    {
+        return match ($this) {
+            Method::POST => 'POST',
+            Method::DELETE => 'DELETE',
+        };
+    }
+}
+enum Quotas
+{
+    case WORKSTATIONS;
+    case STORAGE;
+
+    public function get(): string
+    {
+        return match ($this) {
+            Quotas::WORKSTATIONS => 'workstations',
+            Quotas::STORAGE => 'storage',
+        };
+    }
+}
+
 class Home extends BaseController
 {
     private CURLRequest $client;
@@ -12,7 +50,6 @@ class Home extends BaseController
     private string $client_id = '8189e982-9ad2-4cf5-bb2c-0bd10bf1869c';
     private string $parent_id = '489a88b1-ac84-423d-9e80-d8c570062e53';
     private string $secret = 'xjjwmos2xtbzntkp223kvomiciifkrbkgoddufc7ebgfgy4pizpe';
-    private string $cyber_protection = 'Cyber Protection';
     private string $access_token;
 
 
@@ -34,7 +71,10 @@ class Home extends BaseController
      * main function
      * @return void
      */
-    public function index()
+
+
+    public
+    function index(): void
     {
 //        $tenantName = $this->"testName";
 //        $userName = $this->"testName";
@@ -45,18 +85,18 @@ class Home extends BaseController
         $this->creatingUseraccount($tenant_id, $userName);
         $userId = $this->getUserId($userName, $tenant_id);
         $this->activateUserAccount($userId);
-        $application_id = $this->getApplicationId($this->cyber_protection);
-        $this->enableApplication("POST", $application_id, $tenant_id);
+        $application_id = $this->getApplicationId(App::CyberProtection->get());
+        $this->enableApplication(Method::POST->get(), $application_id, $tenant_id);
 
         $quotas = [
             [
-                "name" => "storage",
+                "name" => Quotas::STORAGE->get(),
                 "value" => 100,
                 "activate" => 1,
                 "applicationId" => "72363496-294e-48be-995b-0973892166d3"
             ],
             [
-                "name" => "workstations",
+                "name" => Quotas::WORKSTATIONS->get(),
                 "value" => 100,
                 "activate" => 1,
                 "applicationId" => null
@@ -75,7 +115,8 @@ class Home extends BaseController
      * @param $name
      * @return void
      */
-    public function creatingATenant($name)
+    public
+    function creatingATenant($name): void
     {
         $tenant = array(
             "name" => $name,
@@ -92,7 +133,8 @@ class Home extends BaseController
      * @param string $name
      * @return string
      */
-    public function getTenantId(string $name): string
+    public
+    function getTenantId(string $name): string
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
         $response = $this->client->request("GET", "tenants", ["query" => ["subtree_root_id" => $this->parent_id]]);
@@ -114,7 +156,8 @@ class Home extends BaseController
      * @param string $username
      * @return void
      */
-    public function creatingUserAccount(string $tenant_id, string $username)
+    public
+    function creatingUserAccount(string $tenant_id, string $username): void
     {
 //        check if name available
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
@@ -143,7 +186,8 @@ class Home extends BaseController
      * @param string $userId
      * @return void
      */
-    public function activateUserAccount(string $userId)
+    public
+    function activateUserAccount(string $userId): void
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
         $response = $this->client->request("POST", "users/" . $userId . "/send-activation-email", ["json" => ""]);
@@ -156,7 +200,8 @@ class Home extends BaseController
      * @param string $tenant_id
      * @return string
      */
-    public function getUserId(string $name, string $tenant_id): string
+    public
+    function getUserId(string $name, string $tenant_id): string
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
         $response = $this->client->request("GET", "users", ["query" => ["subtree_root_tenant_id" => $tenant_id]]);
@@ -174,12 +219,13 @@ class Home extends BaseController
 
     /**
      * enable or disable an application for a tenant
-     * @param string $method
+     * @param string $method "POST" or "GET"
      * @param string $application_id
      * @param string $tenant_id
      * @return void
      */
-    public function enableApplication(string $method, string $application_id, string $tenant_id)
+    public
+    function enableApplication(string $method, string $application_id, string $tenant_id): void
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
         $response = $this->client->request($method, "applications/" . $application_id . "/bindings/tenants/" . $tenant_id);
@@ -193,7 +239,8 @@ class Home extends BaseController
      * @param $quotas
      * @return void
      */
-    public function activateApplication($tenant_id, $quotas)
+    public
+    function activateApplication($tenant_id, $quotas): void
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
         $result = $this->client->request("GET", "tenants/" . $tenant_id . "/offering_items", ["query" => ["edition" => "pck_per_workload"]]);
@@ -222,7 +269,8 @@ class Home extends BaseController
      * @param $quotas
      * @return void
      */
-    public function setQuotas($tenant_id, $quotas)
+    public
+    function setQuotas($tenant_id, $quotas): void
     {
 
 
@@ -256,7 +304,8 @@ class Home extends BaseController
      * @param string $name
      * @return string
      */
-    public function getApplicationId(string $name): string
+    public
+    function getApplicationId(string $name): string
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
         $response = $this->client->request("GET", "applications");
@@ -277,7 +326,8 @@ class Home extends BaseController
      * @param $user_id
      * @return void
      */
-    public function checkCurrentRoles($user_id)
+    public
+    function checkCurrentRoles($user_id): void
     {
         $this->client->setHeader("Authorization", "Bearer " . $this->access_token);
         $response = $this->client->request("GET", "users/" . $user_id . "/access_policies");
@@ -294,7 +344,8 @@ class Home extends BaseController
      * @param $user_id
      * @return void
      */
-    public function modifyCurrentRoles($tenant_id, $user_id)
+    public
+    function modifyCurrentRoles($tenant_id, $user_id): void
     {
         $policies_object = [
             "items" => [
@@ -319,7 +370,8 @@ class Home extends BaseController
      * @param int $length
      * @return string
      */
-    public function generateRandomString(int $length = 10): string
+    public
+    function generateRandomString(int $length = 10): string
     {
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $charactersLength = strlen($characters);
@@ -331,3 +383,4 @@ class Home extends BaseController
     }
 
 }
+
